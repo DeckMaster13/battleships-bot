@@ -78,9 +78,9 @@ def get_dist(yx, smallest_size, fired_list):
 
 if state["cmd"] == "init":
   
-    print "{ \"2\" :{\"point\": \"11\",\"orientation\" : \"vertical\"},\"3\" :"
-        +"{\"point\": \"22\",\"orientation\" : \"vertical\"},\"4\" :{\"point\": \"43\"\"orientation\" : \"vertical\"},"
-        +"\"5\" :{\"point\": \"37\",\"orientation\" : \"horizontal\"}"
+    print("{ \"2\" :{\"point\": \"11\",\"orientation\" : \"vertical\"},\"3\" :"
+        +"{\"point\": \"22\",\"orientation\" : \"vertical\"},\"4\" :{\"point\": \"43\",\"orientation\" : \"vertical\"},"
+        +"\"5\" :{\"point\": \"37\",\"orientation\" : \"horizontal\"}}")
 
 else:
 
