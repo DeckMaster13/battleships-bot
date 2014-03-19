@@ -4,9 +4,9 @@ state = json.loads(sys.argv[1])
 move = "88"
 
 #debug
-f = open("moves.txt", "a")
-f.write("+")
-f.close()
+# f = open("moves.txt", "a")
+# f.write("+")
+# f.close()
 
 def max_hits():
     pass
