@@ -78,6 +78,7 @@ simulate = ->
 
         error = game.play move
         if error
+            console.log data
             console.log "ERROR".red, "Invalid move"
             console.log "Player #{bot}".yellow
             console.log error
