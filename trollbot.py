@@ -77,10 +77,10 @@ def get_dist(yx, smallest_size, fired_list):
     return [res_x, res_y]
 
 if state["cmd"] == "init":
-    f = open("./myships.json")
-    myships = json.load(f)
-    myships = json.dumps(myships)
-    print myships
+  
+    print "{ \"2\" :{\"point\": \"11\",\"orientation\" : \"vertical\"},\"3\" :"
+        +"{\"point\": \"22\",\"orientation\" : \"vertical\"},\"4\" :{\"point\": \"43\"\"orientation\" : \"vertical\"},"
+        +"\"5\" :{\"point\": \"37\",\"orientation\" : \"horizontal\"}"
 
 else:
 
