@@ -1,15 +1,20 @@
 import json, sys, random, math
 
-state = json.loads(sys.argv[1])
+def print_map(map):
+    print "---"
+    for line in map:
+        print line
+    print "---"
 
 # to get the args
 def get_args():
     res_json = sys.argv[1]
     res = json.loads(res_json)
     ships = ["2", "3", "4", "5"]
+    destroyed = res["destroyed"]
     smallest_size = int(min(filter(lambda x: x not in destroyed, ships)))
     largest_size = int(max(filter(lambda x: x not in destroyed, ships)))
-    return [res["moves"], res["hit"], res["missed"], res["destroyed"], smallest_size, largest_size]
+    return [res["moves"], res["hit"], res["missed"], destroyed, smallest_size, largest_size]
 
 # to get a map (double entry array)
 def get_map(missed, hits):
@@ -83,11 +88,10 @@ def checkfocus_ships(hits, to_fire, smallest_size, largest_size):
     return to_fire_better
 
 # to check for a hit, the neighbors recursively and build get_parts() below
-def check_next(hit, len, align):
+def check_next(map, hit, len, align):
     y = int(hit[0])
     x = int(hit[1])
     if map[x][y] == "hit":
-        print hit
         len += 1
         if align == "h" and y < 7:
             y+=1
@@ -96,7 +100,7 @@ def check_next(hit, len, align):
         else:
             return len
         hit = str(y)+str(x)
-        len = check_next(hit, len, align)
+        len = check_next(map,hit, len, align)
     return len
 
 # to get the consecutive hits
@@ -106,13 +110,10 @@ def get_parts(map, hits):
     for x in range(0,8):
         y=0
         while y in range(0,7):
-            print map[x][y]
             if map[x][y] == "hit":
                 status = map[x][y]
                 hit = str(y)+str(x)
-                print "---"
-                len = check_next(hit,0,"h")
-                print "---"
+                len = check_next(map,hit,0,"h")
                 h_ships_parts[len].append(hit)
                 y += len
             else:
@@ -122,13 +123,10 @@ def get_parts(map, hits):
     for y in range(0,8):
         x=0
         while x in range(0,7):
-            print map[x][y]
             if map[x][y] == "hit":
                 status = map[x][y]
                 hit = str(y)+str(x)
-                print "---"
-                len = check_next(hit,0,"v")
-                print "---"
+                len = check_next(map,hit,0,"v")
                 v_ships_parts[len].append(hit)
                 x += len
             else:
@@ -136,13 +134,32 @@ def get_parts(map, hits):
 
     return [h_ships_parts, v_ships_parts]
 
+def get_parts2(parts):
+    parts2 = [{k:[] for k in range(1,9)},{k: [] for k in range(1,9)}]
+    for key in parts[0].keys():
+        while parts[0][key] != []:
+            pos = parts[0][key].pop()
+            pos_list = [pos]
+            for i in range(1,key):
+                x = int(pos[1])
+                y = int(pos[0])
+                pos_list.append(str(y+i)+str(x))
+            parts2[0][key].append(pos_list)
+    for key in parts[1].keys():
+        while parts[1][key] != []:
+            pos = parts[1][key].pop()
+            pos_list = [pos]
+            for i in range(1,key):
+                x = int(pos[1])
+                y = int(pos[0])
+                pos_list.append(str(y)+str(x+i))
+            parts2[1][key].append(pos_list)
+    return parts2
 # to check the positions of the sunk ships
 def check_sunk(map, parts, destroyed):
     sunk_ships = []
     for i in range(2,6):
-        print i
         if i in destroyed:
-            print "tut"
             if len(parts[0][i]+parts[1][i]) == 1:
                 if len(parts[0][i]) == 1:
                     start_pos = parts[0][i][0]
@@ -167,14 +184,16 @@ def check_sunk(map, parts, destroyed):
     return map, sunk_ships
 
 
-hits = [ "10", "30", "40", "50", "31","41","51","61","71"]
-missed = []
-destroyed = [5]
-map, pos = get_map(missed, hits)
-parts = get_parts(map, hits)
-map, sunk_ships = check_sunk(map, parts, destroyed)
-print map
-print sunk_ships
+# hits = [ "10", "30", "40", "50", "31","41","51","61","71"]
+# missed = []
+# destroyed = [5]
+# largest_size = 4
+# map, pos = get_map(missed, hits)
+# parts = get_parts(map, hits)
+# map, sunk_ships = check_sunk(map, parts, destroyed)
+# print_map(map)
+# print sunk_ships
+# fired_list = missed+hits+sunk_ships
 
 def init():
     print("{ \"2\" :{\"point\": \"00\",\"orientation\" : \"vertical\"},\"3\" :"
@@ -182,29 +201,119 @@ def init():
         +"\"5\" :{\"point\": \"37\",\"orientation\" : \"horizontal\"}}")
 
 def classic_search():
-    def get_dist(yx, smallest_size, fired_list):
-    if fired_list == []:
-        return []
-    x = int(yx[1])
-    y = int(yx[0])
-    for fired in fired_list:
-        x0 = int(fired[1])
-        y0 = int(fired[0])
-        res_x = math.fabs(x-x0)
-        res_y = math.fabs(y-y0)
-    return [res_x, res_y]
+    pass
+
+def check_fit(map, pos, ship_size, align):
+    x0, y0 = pos
+    if align == "vertical":
+        for x in range(x0, x0+ship_size):
+            if x > 7:
+                return False
+            if (map[x][y0] in ["sunk", "hit"]):
+                return False
+    elif align == "horizontal":
+        for y in range(y0, y0+ship_size):
+            if y > 7:
+                return False
+            if (map[x0][y] in ["sunk", "hit"]):
+                return False
+    else:
+        raise AlignError
+    return True
+
+def make_pmap(map, remaining_ships, parts, parts2, largest_size, fired_list):
+    x = [0 for i in range(0,8)]
+    pmap = [list(x) for i in range(0,8)]
+    for i in range(0,8):
+        for j in range(0,8):
+            for ship_size in remaining_ships:
+                if check_fit(map, [i,j], ship_size, "vertical"):
+                    for x in range(i, i+ship_size):
+                        pmap[x][j] += 1
+                if check_fit(map, [i,j], ship_size, "horizontal"):
+                    for y in range(j, j+ship_size):
+                        pmap[i][y] += 1
+
+    around_hits1 = check_hits(parts[0][1], fired_list)
+    around_hits1.append(check_hits(parts[1][1], fired_list))
+
+    around_hits2_v = check_hits(parts[0][2], fired_list)
+    around_hits2_h = check_hits(parts[1][2], fired_list)
+
+    if around_hits1 != [[]]:
+        for pos in around_hits1:
+            x1 = int(pos[1])
+            y1 = int(pos[0])
+            pmap[x1][y1] += 50
+
+    for key in parts2[0].keys():
+        if key < largest_size:
+            #horizontal
+            for pos_list in parts2[0][key]:
+                around_hits3 = check_hits(pos_list, fired_list)
+                for pos in around_hits3:
+                    x3 = int(pos[0])
+                    y3 = int(pos[1])
+                    pmap[x3][y3] += 50
+            # vertical
+            for pos_list in parts2[1][key]:
+                around_hits3 = check_hits(pos_list, fired_list)
+                for pos in around_hits3:
+                    x3 = int(pos[0])
+                    y3 = int(pos[1])
+                    pmap[x3][y3] += 50
+
+    return pmap
+
+def chose_move(pmap):
+    max = 0
+    x0 = 0
+    y0 = 0
+    for x in range(0,8):
+        for y in range(0,8):
+            if pmap[x][y] > max:
+                max = pmap[x][y]
+                x0 = x
+                y0 = y
+    return str(y0)+str(x0)
+
+# ships = range(2,6)
+# print ships
+# remaining_ships = filter(lambda x: x not in destroyed, ships)
+# hits = filter(lambda x: x not in sunk_ships, hits)
+# print hits
+# print remaining_ships
+
+#print_map(pmap)
+#print parts
+# parts2 = get_parts2(parts)
+# pmap = make_pmap(map, remaining_ships, parts, parts2, largest_size, fired_list)
+# print parts2[0]
+# print parts2[1]
+# print_map(pmap)
 
 def search():
     pass
 def destroy():
     pass
 
-if state["cmd"] == "init":
-    init()
-else:
-    moves, hits, missed, destroyed, smallest_size, largest_size = get_args()
-    map, pos = get_map(missed, hits)
-    parts = get_parts(map, hits)
-    map, sunk_ships = check_sunk(map, parts, destroyed)
-    fired_list = list(missed+hits+sunk_ships)
-    to_fire_at = check_ships()
+def run():
+    state = json.loads(sys.argv[1])
+    
+    if state["cmd"] == "init":
+        init()
+    else:
+        moves, hits, missed, destroyed, smallest_size, largest_size = get_args()
+        map, pos = get_map(missed, hits)
+        parts = get_parts(map, hits)
+        parts2 = get_parts2(parts)
+        map, sunk_ships = check_sunk(map, parts, destroyed)
+        fired_list = list(missed+hits)
+        hits = filter(lambda x: x not in sunk_ships, hits)
+        ships = range(2,6)
+        remaining_ships = filter(lambda x: x not in destroyed, ships)
+        pmap = make_pmap(map, remaining_ships, parts, parts2, largest_size, fired_list)
+        move = chose_move(pmap)
+        print "{ \"move\" : \""+move+"\" }"
+
+run()
